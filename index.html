@@ -439,6 +439,8 @@ var time =0;
 var zoom = 45;
 
 var moonOrbit = 0;
+var earthOrbit = 0;
+var sunOrbit = 0;
 
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -448,7 +450,7 @@ function drawScene() {
     mat4.identity(mvMatrix);
     mat4.perspective(pMatrix, zoom*3.141592/180, gl.viewportWidth/gl.viewportHeight, 0.1,100);
 
-    mat4.translate(mvMatrix, mvMatrix, [0,0,-30]);
+    mat4.translate(mvMatrix, mvMatrix, [0,0,-100]);
     //mat4.rotate(mvMatrix, mvMatrix, time, [0,1,0]);
 
     setMatrixUniforms(shaderProgram);
@@ -470,6 +472,13 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
+    if (sunOrbit == 360) {
+        sunOrbit = 0;
+    } else {
+        sunOrbit +=0.001;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, sunOrbit, [0,0,1]);
     mat4.scale(mvMatrix, mvMatrix, [2, 2, 2]);
 
     //dessin
@@ -492,7 +501,17 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
-    mat4.translate(mvMatrix, mvMatrix, [8, 0, 0]);
+    if (earthOrbit == 360) {
+        earthOrbit = 0;
+    } else {
+        earthOrbit +=0.01;
+    }
+
+
+    mat4.rotate(mvMatrix,mvMatrix, earthOrbit, [0,0,1]);
+    mat4.translate(mvMatrix, mvMatrix, [5,0,0]);
+
+    mat4.translate(mvMatrix, mvMatrix, [12, 0, 0]);
     mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
 
     //dessin
@@ -513,8 +532,7 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
-
-    mat4.translate(mvMatrix, mvMatrix, [8,0,0]);
+    mat4.translate(mvMatrix, mvMatrix, [-15,5,0]);
     mat4.scale(mvMatrix, mvMatrix, [0.8, 0.8, 0.8]);
 
     //dessin
@@ -526,7 +544,7 @@ function drawScene() {
     LUNE
     **/
     //texture
-    mat4.translate(mvMatrix, mvMatrix, [-12,0,0]);
+    mat4.translate(mvMatrix, mvMatrix, [-12,-6,0]);
     gl.bindTexture(gl.TEXTURE_2D, moonTexture);
 
     //attributs
@@ -543,8 +561,10 @@ function drawScene() {
         moonOrbit +=0.01;
     }
 
+    mat4.translate(mvMatrix, mvMatrix, [31,0,0]);
     mat4.rotate(mvMatrix,mvMatrix, moonOrbit, [0,0,1]);
-    mat4.translate(mvMatrix, mvMatrix, [5,0,0]);
+    mat4.translate(mvMatrix, mvMatrix, [7,0,0]);
+
 
     mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
     mat4.rotate(mvMatrix, mvMatrix, time, [0,2,0]);
