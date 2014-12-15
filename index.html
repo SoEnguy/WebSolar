@@ -1,0 +1,595 @@
+<html>
+
+<head>
+<title>LP are da best !</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="gl-matrix-min.js"></script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+    attribute vec2 aTexCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec4 vColor;
+    varying vec3 vTex;
+
+    void main(void) {
+        vec3 norm = normalize(aVertexPosition);
+        vec3 pos = norm*3.0;
+        gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);
+        vColor = aVertexColor;
+        vTex =norm;
+    }
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform float time;
+    uniform sampler2D tex;
+
+    varying vec4 vColor;
+    varying vec3 vTex;
+
+    void main(void) {
+        //vec2 pos = -1.0+2.0*gl_FragCoord.xy /500.0; //coords ecran
+        vec3 pos = vTex*2.0 - 1.0; //coords carre
+        vec3 squarePos = pos * pos * pos * pos; //remplace pow(pos.x,4.0) et pow(pos.y, 4.0), provoquait des bugs
+        //float d = length (pos); //distance pour le cercle
+        //float d = sqrt(sqrt(squarePos.x+squarePos.y)); // distance pour le squircle
+
+/*        if(d>0.8 || d<0.2) //pour les pixels proches du centre ou de l'exterieur
+            discard; */
+
+        //vec2 texCoord = vec2(vTex.x, 1.0-vTex.y); //inversion de l'axe y
+        vec2 texCoord = vec2(1.0-(atan(vTex.z, vTex.x) / 3.14159 + 1.0) * 0.5,1.0-(asin(vTex.y) / 3.14159 + 0.5)); //inversion de l'axe y
+
+        vec4 texel = texture2D(tex, texCoord); //couleur du pixel dans la texture
+        
+        /*
+            couleur du pixel :
+            melange de la couleur de la texture et de la couleur envoyee par le vertex
+            smoothstep permet de passer progressivement de
+            0% de couleur avant d=0.5 à 100% de couleur a partir de d=1.0
+        */
+        //gl_FragColor = mix(texel, vColor, smoothstep(0.5,1.0,d));
+        gl_FragColor = texture2D(tex,texCoord);
+
+        //animation des lignes en fonction du temps
+        //if(mod(d+time/10.0, 0.1)>0.08) discard;
+    }
+</script>
+
+<script type="text/javascript">
+
+    var gl;
+
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexTexAttribute = gl.getAttribLocation(shaderProgram, "aTexCoord");
+        gl.enableVertexAttribArray(shaderProgram.vertexTexAttribute);
+
+        shaderProgram.timeUniform = gl.getUniformLocation(shaderProgram, "time");
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    }
+
+var earthTexture;
+var moonTexture;
+var sunTexture;
+var mercuryTexture;
+
+function initTextures() {
+    earthTexture = gl.createTexture();
+    cubeImage = new Image();
+    cubeImage.onload = function() { handleTextureLoaded(cubeImage, earthTexture); }
+    cubeImage.src = "earthmap.jpg";
+    //document.body.appendChild(cubeImage);
+
+    moonTexture = gl.createTexture();
+    moonImage = new Image();
+    moonImage.onload = function() { handleTextureLoaded(moonImage, moonTexture); }
+    moonImage.src = "moonmap.jpg";
+
+    sunTexture = gl.createTexture();
+    sunImage = new Image();
+    sunImage.onload = function() { handleTextureLoaded(sunImage, sunTexture); }
+    sunImage.src = "sun.jpg";
+
+    mercuryTexture = gl.createTexture();
+    mercuryImage = new Image();
+    mercuryImage.onload = function() { handleTextureLoaded(mercuryImage, mercuryTexture); }
+    mercuryImage.src = "mercury.jpg";
+}
+
+function handleTextureLoaded(image, texture) {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+    var mvMatrixStack = [];
+
+function mvPushMatrix(m) {
+  if (m) {
+    mvMatrixStack.push(m.dup());
+    mvMatrix = m.dup();
+  } else {
+    mvMatrixStack.push(mvMatrix.dup());
+  }
+}
+
+function mvPopMatrix() {
+  if (!mvMatrixStack.length) {
+    throw("Can't pop from an empty matrix stack.");
+  }
+  
+  mvMatrix = mvMatrixStack.pop();
+  return mvMatrix;
+}
+
+    function setMatrixUniforms(shader) {
+        gl.uniformMatrix4fv(shader.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shader.mvMatrixUniform, false, mvMatrix);
+    }
+
+var squarePosBuffer;
+var squareColorBuffer;
+var earthTexBuffer;
+var moonTexBuffer;
+var sunTexBuffer;
+var mercuryTexBuffer;
+
+var carreGrille = [];
+var texGrille = [];
+var colorGrille = [];
+
+    function initBuffers() {
+       squarePosBuffer = gl.createBuffer();
+
+        var carre;
+        var tex;
+        var color;
+
+        //** FACE BAS
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [-1+j, -1+i,-19,
+                        1+j, -1+i,-19,
+                        -1+j, 1+i,-19,
+                        1+j, 1+i,-19,
+                        -1+j, 1+i,-19,
+                        1+j, -1+i,-19];
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+        //**FACE HAUT
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [-1+j, -1+i,19,
+                        1+j, -1+i,19,
+                        -1+j, 1+i,19,
+                        1+j, 1+i,19,
+                        -1+j, 1+i,19,
+                        1+j, -1+i,19];
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+        //**FACE DROITE
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [19, -1+i,-1+j,
+                        19, -1+i,1+j,
+                        19, 1+i,-1+j,
+                        19, 1+i,1+j,
+                        19, 1+i,-1+j,
+                        19, -1+i,1+j];
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+        //**FACE GAUCHE
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [-19, -1+i,-1+j,
+                        -19, -1+i,1+j,
+                        -19, 1+i,-1+j,
+                        -19, 1+i,1+j,
+                        -19, 1+i,-1+j,
+                        -19, -1+i,1+j];
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+        //**FACE AVANT 
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [-1+i,19 ,-1+j,
+                        -1+i, 19,1+j,
+                        1+i, 19,-1+j,
+                        1+i, 19,1+j,
+                        1+i, 19,-1+j,
+                        -1+i, 19,1+j];
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+        //**FACE ARRIERE
+        for (var i = -19; i<20; i+=2) {
+            for (var j = -19; j < 20; j+=2) {
+                carre = [-1+i,-19 ,-1+j,
+                        -1+i, -19,1+j,
+                        1+i, -19,-1+j,
+                        1+i, -19,1+j,
+                        1+i, -19,-1+j,
+                        -1+i, -19,1+j];
+
+
+                tex = [0,0, 
+                        1,0, 
+                        0,1, 
+                        1,1,
+                        0,1,
+                        1,0];
+
+                color = [1.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        1.0, 1.0, 0.0,
+                        0.0, 0.0, 1.0,
+                        0.0, 1.0, 0.0];
+
+                carreGrille = carreGrille.concat(carre);
+                texGrille = texGrille.concat(tex);
+                colorGrille = colorGrille.concat(color);
+            }
+        }
+
+       gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(carreGrille), gl.STATIC_DRAW);
+
+       squareColorBuffer = gl.createBuffer();
+    
+       gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colorGrille), gl.STATIC_DRAW);
+
+       earthTexBuffer = gl.createBuffer();
+
+       gl.bindBuffer(gl.ARRAY_BUFFER, earthTexBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
+
+       moonTexBuffer = gl.createBuffer();
+       
+       gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
+
+       sunTexBuffer = gl.createBuffer();
+       
+       gl.bindBuffer(gl.ARRAY_BUFFER, sunTexBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
+
+       mercuryTexBuffer = gl.createBuffer();
+       
+       gl.bindBuffer(gl.ARRAY_BUFFER, mercuryTexBuffer);
+       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
+    }
+
+var time =0;
+var zoom = 45;
+
+var moonOrbit = 0;
+
+function drawScene() {
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    mat4.identity(pMatrix);
+    mat4.identity(mvMatrix);
+    mat4.perspective(pMatrix, zoom*3.141592/180, gl.viewportWidth/gl.viewportHeight, 0.1,100);
+
+    mat4.translate(mvMatrix, mvMatrix, [0,0,-30]);
+    //mat4.rotate(mvMatrix, mvMatrix, time, [0,1,0]);
+
+    setMatrixUniforms(shaderProgram);
+    gl.uniform1f(shaderProgram.timeUniform, time);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "tex"), 0);
+
+    /**
+    SOLEIL
+    **/
+    gl.bindTexture(gl.TEXTURE_2D, sunTexture);
+    
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sunTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    mat4.scale(mvMatrix, mvMatrix, [2, 2, 2]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length)/3);
+
+    /**
+    TERRE
+    **/    
+    //texture
+    gl.bindTexture(gl.TEXTURE_2D, earthTexture);
+    
+    //attributs
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, earthTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    mat4.translate(mvMatrix, mvMatrix, [8, 0, 0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+/**
+    MERCURY
+    **/
+    gl.bindTexture(gl.TEXTURE_2D, mercuryTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+
+    mat4.translate(mvMatrix, mvMatrix, [8,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.8, 0.8, 0.8]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    LUNE
+    **/
+    //texture
+    mat4.translate(mvMatrix, mvMatrix, [-12,0,0]);
+    gl.bindTexture(gl.TEXTURE_2D, moonTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (moonOrbit == 360) {
+        moonOrbit = 0;
+    } else {
+        moonOrbit +=0.01;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, moonOrbit, [0,0,1]);
+    mat4.translate(mvMatrix, mvMatrix, [5,0,0]);
+
+    mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
+    mat4.rotate(mvMatrix, mvMatrix, time, [0,2,0]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+    
+
+    /////////////////////////
+
+    time += 0.01;
+
+    setTimeout(drawScene, 1000/60);
+}
+
+    function mouseZoom(event) {
+        zoom += Math.sign(event.detail);
+    }
+
+    function webGLStart() {
+        var canvas = document.getElementById("dawin-canvas");
+        initGL(canvas);
+        initShaders();
+        initBuffers();
+        initTextures();
+
+        canvas.addEventListener("DOMMouseScroll", mouseZoom, false);
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+
+        drawScene();
+    }
+
+</script>
+
+
+</head>
+
+<body onload="webGLStart();">
+
+    <canvas id="dawin-canvas" style="border: none;" width="500" height="500"></canvas>
+
+</body>
+
+</html>
