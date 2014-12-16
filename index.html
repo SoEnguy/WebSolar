@@ -150,6 +150,13 @@ var earthTexture;
 var moonTexture;
 var sunTexture;
 var mercuryTexture;
+var venusTexture;
+var marsTexture;
+var jupiterTexture;
+var saturneTexture;
+var spaceTexture;
+var uranusTexture;
+var neptuneTexture;
 
 function initTextures() {
     earthTexture = gl.createTexture();
@@ -172,6 +179,41 @@ function initTextures() {
     mercuryImage = new Image();
     mercuryImage.onload = function() { handleTextureLoaded(mercuryImage, mercuryTexture); }
     mercuryImage.src = "mercury.jpg";
+
+    venusTexture = gl.createTexture();
+    venusImage = new Image();
+    venusImage.onload = function() { handleTextureLoaded(venusImage, venusTexture); }
+    venusImage.src = "venus.jpg";
+
+    marsTexture = gl.createTexture();
+    marsImage = new Image();
+    marsImage.onload = function() { handleTextureLoaded(marsImage, marsTexture); }
+    marsImage.src = "mars.jpg";
+
+    jupiterTexture = gl.createTexture();
+    jupiterImage = new Image();
+    jupiterImage.onload = function() { handleTextureLoaded(jupiterImage, jupiterTexture); }
+    jupiterImage.src = "jupiter.jpg";
+
+    saturneTexture = gl.createTexture();
+    saturneImage = new Image();
+    saturneImage.onload = function() { handleTextureLoaded(saturneImage, saturneTexture); }
+    saturneImage.src = "saturne.jpg";
+
+    spaceTexture = gl.createTexture();
+    spaceImage = new Image();
+    spaceImage.onload = function() { handleTextureLoaded(spaceImage, spaceTexture); }
+    spaceImage.src = "space.jpg";
+
+    uranusTexture = gl.createTexture();
+    uranusImage = new Image();
+    uranusImage.onload = function() { handleTextureLoaded(uranusImage, uranusTexture); }
+    uranusImage.src = "uranus.jpg";
+
+    neptuneTexture = gl.createTexture();
+    neptuneImage = new Image();
+    neptuneImage.onload = function() { handleTextureLoaded(neptuneImage, neptuneTexture); }
+    neptuneImage.src = "neptune.jpg";
 }
 
 function handleTextureLoaded(image, texture) {
@@ -214,10 +256,7 @@ function mvPopMatrix() {
 
 var squarePosBuffer;
 var squareColorBuffer;
-var earthTexBuffer;
-var moonTexBuffer;
-var sunTexBuffer;
-var mercuryTexBuffer;
+var sphereTexBuffer;
 
 var carreGrille = [];
 var texGrille = [];
@@ -414,24 +453,9 @@ var colorGrille = [];
        gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colorGrille), gl.STATIC_DRAW);
 
-       earthTexBuffer = gl.createBuffer();
-
-       gl.bindBuffer(gl.ARRAY_BUFFER, earthTexBuffer);
-       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
-
-       moonTexBuffer = gl.createBuffer();
+       sphereTexBuffer = gl.createBuffer();
        
-       gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
-       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
-
-       sunTexBuffer = gl.createBuffer();
-       
-       gl.bindBuffer(gl.ARRAY_BUFFER, sunTexBuffer);
-       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
-
-       mercuryTexBuffer = gl.createBuffer();
-       
-       gl.bindBuffer(gl.ARRAY_BUFFER, mercuryTexBuffer);
+       gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
     }
 
@@ -439,6 +463,15 @@ var time =0;
 var zoom = 45;
 
 var moonOrbit = 0;
+var earthOrbit = 0;
+var mercuryOrbit = 0;
+var sunOrbit = 0;
+var venusOrbit = 0;
+var marsOrbit = 0;
+var jupiterOrbit = 0;
+var saturneOrbit = 0;
+var uranusOrbit = 0;
+var neptuneOrbit = 0;
 
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -446,9 +479,9 @@ function drawScene() {
 
     mat4.identity(pMatrix);
     mat4.identity(mvMatrix);
-    mat4.perspective(pMatrix, zoom*3.141592/180, gl.viewportWidth/gl.viewportHeight, 0.1,100);
+    mat4.perspective(pMatrix, zoom*3.141592/180, gl.viewportWidth/gl.viewportHeight, 0.1,10000);
 
-    mat4.translate(mvMatrix, mvMatrix, [0,0,-30]);
+    mat4.translate(mvMatrix, mvMatrix, [0,0,-100]);
     //mat4.rotate(mvMatrix, mvMatrix, time, [0,1,0]);
 
     setMatrixUniforms(shaderProgram);
@@ -460,16 +493,25 @@ function drawScene() {
     /**
     SOLEIL
     **/
+    mvPushMatrix();
+    
     gl.bindTexture(gl.TEXTURE_2D, sunTexture);
     
     //attributs
     gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, sunTexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
+    if (sunOrbit == 360) {
+        sunOrbit = 0;
+    } else {
+        sunOrbit +=0.005;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, sunOrbit, [0,0,1]);
     mat4.scale(mvMatrix, mvMatrix, [2, 2, 2]);
 
     //dessin
@@ -481,6 +523,8 @@ function drawScene() {
     TERRE
     **/    
     //texture
+    mvPopMatrix();
+    mvPushMatrix();
     gl.bindTexture(gl.TEXTURE_2D, earthTexture);
     
     //attributs
@@ -488,34 +532,21 @@ function drawScene() {
     gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, earthTexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
-    mat4.translate(mvMatrix, mvMatrix, [8, 0, 0]);
-    mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
+    if (earthOrbit == 360) {
+        earthOrbit = 0;
+    } else {
+        earthOrbit +=0.005;
+    }
 
-    //dessin
-    setMatrixUniforms(shaderProgram);
+    mat4.rotate(mvMatrix,mvMatrix, earthOrbit, [0,0,1]);
+    mat4.translate(mvMatrix, mvMatrix, [25,0,0]);
 
-    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
-
-/**
-    MERCURY
-    **/
-    gl.bindTexture(gl.TEXTURE_2D, mercuryTexture);
-
-    //attributs
-    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
-
-    //transformation
-
-    mat4.translate(mvMatrix, mvMatrix, [8,0,0]);
-    mat4.scale(mvMatrix, mvMatrix, [0.8, 0.8, 0.8]);
+    mat4.rotate(mvMatrix, mvMatrix, earthOrbit, [1, 1, 0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.4, 0.4, 0.4]);
 
     //dessin
     setMatrixUniforms(shaderProgram);
@@ -526,34 +557,276 @@ function drawScene() {
     LUNE
     **/
     //texture
-    mat4.translate(mvMatrix, mvMatrix, [-12,0,0]);
     gl.bindTexture(gl.TEXTURE_2D, moonTexture);
 
     //attributs
     gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, moonTexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
 
     //transformation
     if (moonOrbit == 360) {
         moonOrbit = 0;
     } else {
-        moonOrbit +=0.01;
+        moonOrbit +=0.008;
+    }
+    
+    //Inverse terre    
+    mat4.rotate(mvMatrix, mvMatrix, time, [-1, -1, 0]);
+
+    //Orbite
+    mat4.rotate(mvMatrix,mvMatrix, moonOrbit, [0,0,1]);
+    mat4.translate(mvMatrix, mvMatrix, [6,0,0]);
+    
+    //Taille
+    mat4.scale(mvMatrix, mvMatrix, [0.4, 0.4, 0.4]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    MERCURY
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, mercuryTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (mercuryOrbit == 360) {
+        mercuryOrbit = 0;
+    } else {
+        mercuryOrbit +=0.01;
     }
 
-    mat4.rotate(mvMatrix,mvMatrix, moonOrbit, [0,0,1]);
-    mat4.translate(mvMatrix, mvMatrix, [5,0,0]);
+    mat4.rotate(mvMatrix,mvMatrix, mercuryOrbit, [0,0,1]);
 
-    mat4.scale(mvMatrix, mvMatrix, [0.5, 0.5, 0.5]);
-    mat4.rotate(mvMatrix, mvMatrix, time, [0,2,0]);
+    mat4.translate(mvMatrix, mvMatrix, [11,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.3, 0.3, 0.3]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    VENUS
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, venusTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (venusOrbit == 360) {
+        venusOrbit = 0;
+    } else {
+        venusOrbit +=0.008;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, venusOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [15,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.6, 0.6, 0.6]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    MARS
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, marsTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (marsOrbit == 360) {
+        marsOrbit = 0;
+    } else {
+        marsOrbit +=0.004;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, marsOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [32,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.35, 0.35, 0.35]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    JUPITER
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, jupiterTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (jupiterOrbit == 360) {
+        jupiterOrbit = 0;
+    } else {
+        jupiterOrbit +=0.003;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, jupiterOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [39,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [1., 1., 1.]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    SATURNE
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, saturneTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (saturneOrbit == 360) {
+        saturneOrbit = 0;
+    } else {
+        saturneOrbit +=0.002;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, saturneOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [48,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.8, 0.8, 0.8]);
 
     //dessin
     setMatrixUniforms(shaderProgram);
 
     gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
     
+    /**
+    URANUS
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, uranusTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (uranusOrbit == 360) {
+        uranusOrbit = 0;
+    } else {
+        uranusOrbit +=0.001;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, uranusOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [56,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.6, 0.6, 0.6]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+    /**
+    NEPTUNE
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, neptuneTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    if (neptuneOrbit == 360) {
+        neptuneOrbit = 0;
+    } else {
+        neptuneOrbit +=0.0006;
+    }
+
+    mat4.rotate(mvMatrix,mvMatrix, neptuneOrbit, [0,0,1]);
+
+    mat4.translate(mvMatrix, mvMatrix, [62,0,0]);
+    mat4.scale(mvMatrix, mvMatrix, [0.6, 0.6, 0.6]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
+
+
+    /**
+    SPACE BACKGROUND
+    **/
+    mvPopMatrix();
+    mvPushMatrix();
+    gl.bindTexture(gl.TEXTURE_2D, spaceTexture);
+
+    //attributs
+    gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexTexAttribute, 2, gl.FLOAT, false, 0,0);
+
+    //transformation
+    mat4.scale(mvMatrix, mvMatrix, [100, 100, 100]);
+
+    //dessin
+    setMatrixUniforms(shaderProgram);
+
+    gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
 
     /////////////////////////
 
@@ -561,6 +834,42 @@ function drawScene() {
 
     setTimeout(drawScene, 1000/60);
 }
+
+var mvMatrixStack = [];
+
+  function mvPushMatrix() {
+    var copy = mat4.create();
+    mat4.set(mvMatrix, copy);
+    mvMatrixStack.push(copy);
+  }
+
+  mat4.set = function(mat, dest) {
+        dest[0] = mat[0];
+        dest[1] = mat[1];
+        dest[2] = mat[2];
+        dest[3] = mat[3];
+        dest[4] = mat[4];
+        dest[5] = mat[5];
+        dest[6] = mat[6];
+        dest[7] = mat[7];
+        dest[8] = mat[8];
+        dest[9] = mat[9];
+        dest[10] = mat[10];
+        dest[11] = mat[11];
+        dest[12] = mat[12];
+        dest[13] = mat[13];
+        dest[14] = mat[14];
+        dest[15] = mat[15];
+        return dest;
+};
+
+
+  function mvPopMatrix() {
+    if (mvMatrixStack.length == 0) {
+      throw "Invalid popMatrix!";
+    }
+    mvMatrix = mvMatrixStack.pop();
+  }
 
     function mouseZoom(event) {
         zoom += Math.sign(event.detail);
@@ -587,9 +896,55 @@ function drawScene() {
 </head>
 
 <body onload="webGLStart();">
+<!-- RESET CSS -->
+<style> html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+    display: block;
+}
+body {
+    line-height: 1;
+}
+ol, ul {
+    list-style: none;
+}
+blockquote, q {
+    quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+    content: '';
+    content: none;
+}
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}</style>
 
-    <canvas id="dawin-canvas" style="border: none;" width="500" height="500"></canvas>
+    <canvas id="dawin-canvas" style="border: none;" width="1000" height="800"></canvas>
 
 </body>
 
 </html>
+
+<script type="text/javascript">
+    
+    canvas = document.getElementById("dawin-canvas");
+    canvas.width = document.body.clientWidth; //document.width is obsolete
+    canvas.height = document.body.clientHeight;
+
+</script>
+
+<!-- TODO
+Lunes de mars (et autres planetes)
+Anneaux saturne
+Gestion souris déplacement
+    -->
