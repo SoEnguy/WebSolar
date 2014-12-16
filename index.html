@@ -19,7 +19,7 @@
 
     void main(void) {
         vec3 norm = normalize(aVertexPosition);
-        vec3 pos = norm*3.0;
+        vec3 pos = norm*2.8;
         gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);
         vColor = aVertexColor;
         vTex =norm;
@@ -36,31 +36,15 @@
     varying vec3 vTex;
 
     void main(void) {
-        //vec2 pos = -1.0+2.0*gl_FragCoord.xy /500.0; //coords ecran
+
         vec3 pos = vTex*2.0 - 1.0; //coords carre
         vec3 squarePos = pos * pos * pos * pos; //remplace pow(pos.x,4.0) et pow(pos.y, 4.0), provoquait des bugs
-        //float d = length (pos); //distance pour le cercle
-        //float d = sqrt(sqrt(squarePos.x+squarePos.y)); // distance pour le squircle
-
-/*        if(d>0.8 || d<0.2) //pour les pixels proches du centre ou de l'exterieur
-            discard; */
-
-        //vec2 texCoord = vec2(vTex.x, 1.0-vTex.y); //inversion de l'axe y
+    
         vec2 texCoord = vec2(1.0-(atan(vTex.z, vTex.x) / 3.14159 + 1.0) * 0.5,1.0-(asin(vTex.y) / 3.14159 + 0.5)); //inversion de l'axe y
 
         vec4 texel = texture2D(tex, texCoord); //couleur du pixel dans la texture
         
-        /*
-            couleur du pixel :
-            melange de la couleur de la texture et de la couleur envoyee par le vertex
-            smoothstep permet de passer progressivement de
-            0% de couleur avant d=0.5 à 100% de couleur a partir de d=1.0
-        */
-        //gl_FragColor = mix(texel, vColor, smoothstep(0.5,1.0,d));
         gl_FragColor = texture2D(tex,texCoord);
-
-        //animation des lignes en fonction du temps
-        //if(mod(d+time/10.0, 0.1)>0.08) discard;
     }
 </script>
 
@@ -255,19 +239,16 @@ function mvPopMatrix() {
     }
 
 var squarePosBuffer;
-var squareColorBuffer;
 var sphereTexBuffer;
 
 var carreGrille = [];
 var texGrille = [];
-var colorGrille = [];
 
     function initBuffers() {
        squarePosBuffer = gl.createBuffer();
 
         var carre;
         var tex;
-        var color;
 
         //** FACE BAS
         for (var i = -19; i<20; i+=2) {
@@ -286,16 +267,8 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
         //**FACE HAUT
@@ -315,16 +288,8 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
         //**FACE DROITE
@@ -344,16 +309,8 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
         //**FACE GAUCHE
@@ -373,16 +330,8 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
         //**FACE AVANT 
@@ -402,16 +351,8 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
         //**FACE ARRIERE
@@ -432,32 +373,23 @@ var colorGrille = [];
                         0,1,
                         1,0];
 
-                color = [1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        1.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0,
-                        0.0, 1.0, 0.0];
-
                 carreGrille = carreGrille.concat(carre);
                 texGrille = texGrille.concat(tex);
-                colorGrille = colorGrille.concat(color);
             }
         }
 
        gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(carreGrille), gl.STATIC_DRAW);
 
-       squareColorBuffer = gl.createBuffer();
-    
-       gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
-       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colorGrille), gl.STATIC_DRAW);
-
        sphereTexBuffer = gl.createBuffer();
        
        gl.bindBuffer(gl.ARRAY_BUFFER, sphereTexBuffer);
        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texGrille), gl.STATIC_DRAW);
     }
+
+    Math.radians = function(degrees) {
+      return degrees * Math.PI / 180;
+    };
 
 var time =0;
 var zoom = 45;
@@ -483,6 +415,7 @@ function drawScene() {
 
     mat4.translate(mvMatrix, mvMatrix, [0,0,-100]);
     //mat4.rotate(mvMatrix, mvMatrix, time, [0,1,0]);
+    mat4.rotate(mvMatrix, mvMatrix, 45, [1,1,1]);
 
     setMatrixUniforms(shaderProgram);
     gl.uniform1f(shaderProgram.timeUniform, time);
@@ -528,7 +461,6 @@ function drawScene() {
     gl.bindTexture(gl.TEXTURE_2D, earthTexture);
     
     //attributs
-
     gl.bindBuffer(gl.ARRAY_BUFFER, squarePosBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0,0);
 
@@ -743,6 +675,7 @@ function drawScene() {
 
     gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
     
+
     /**
     URANUS
     **/
@@ -805,7 +738,6 @@ function drawScene() {
 
     gl.drawArrays(gl.TRIANGLES, 0, (carreGrille.length-1)/3);
 
-
     /**
     SPACE BACKGROUND
     **/
@@ -837,13 +769,13 @@ function drawScene() {
 
 var mvMatrixStack = [];
 
-  function mvPushMatrix() {
-    var copy = mat4.create();
-    mat4.set(mvMatrix, copy);
-    mvMatrixStack.push(copy);
-  }
+    function mvPushMatrix() {
+        var copy = mat4.create();
+        mat4.set(mvMatrix, copy);
+        mvMatrixStack.push(copy);
+    }
 
-  mat4.set = function(mat, dest) {
+    mat4.set = function(mat, dest) {
         dest[0] = mat[0];
         dest[1] = mat[1];
         dest[2] = mat[2];
@@ -861,7 +793,7 @@ var mvMatrixStack = [];
         dest[14] = mat[14];
         dest[15] = mat[15];
         return dest;
-};
+    };
 
 
   function mvPopMatrix() {
